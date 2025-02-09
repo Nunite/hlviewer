@@ -37,6 +37,7 @@
   "homepage": "https://skyrim.github.io/hlviewer.js",
   "dependencies": {
     "gl-matrix": "^3.4.3",
+    "hlviewer.js": "file:",
     "nanoevents": "^9.0.0",
     "solid-js": "^1.8.22"
   },
