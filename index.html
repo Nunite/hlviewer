@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>hlviewer.js</title>
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?" />
+    <link rel="stylesheet" href="dist/hlviewer.css">
     <style>
       html,
       body {
@@ -97,7 +98,7 @@
             <h1 class="title">HLViewer</h1>
           </div>
           <div class="right">
-            <a href="./dist/hlviewer.js" class="nav-link" target="_blank">
+            <a href="https://github.com/Nunite/hlviewer" class="nav-link" target="_blank">
               <svg
                 class="octicon octicon-mark-github v-align-middle"
                 height="32"
@@ -127,7 +128,7 @@
       <div id="hlv-target"></div>
     </div>
 
-    <script type="module" src="./src/index.ts"></script>
+    <script src="dist/hlviewer.min.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         var viewer = HLViewer.init('#hlv-target', 'res')
