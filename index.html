@@ -134,6 +134,61 @@
         var viewer = HLViewer.init('#hlv-target', 'res')
         viewer.load('kz_skyline_Lws_0124.77.dem')
         viewer.setTitle('Simple kz_skyline')
+        
+        // 监听BSP加载事件
+        viewer.game.loader.events.on('loadstart', (item) => {
+          if (item.type === 'bsp') {
+            console.log('开始加载BSP:', item.name);
+          }
+        });
+
+        viewer.game.loader.events.on('progress', (item) => {
+          if (item.type === 'bsp' && item.progress === 1) {
+            console.log('BSP加载完成');
+            
+            // 等待一小段时间确保数据处理完成
+            setTimeout(() => {
+              try {
+                // 尝试从不同路径获取BSP数据
+                const bsp = viewer.game.scene?.bsp || 
+                           viewer.game.worldScene?.bsp || 
+                           viewer.game.loader.map?.data;
+                           
+                if (!bsp) {
+                  console.log('BSP数据未找到');
+                  return;
+                }
+
+                console.log('地图名称:', bsp.name);
+                
+                // 遍历实体查找 MDL 模型
+                if (bsp.entities) {
+                  bsp.entities.forEach((entity, index) => {
+                    if (entity.model && entity.model.toLowerCase().endsWith('.mdl')) {
+                      console.log(`实体 ${index}:`);
+                      console.log(`- 模型: ${entity.model}`);
+                      console.log(`- 位置: ${entity.origin || '未知'}`);
+                      console.log(`- 角度: ${entity.angles || '未知'}`);
+                      console.log(`- 类名: ${entity.classname || '未知'}`);
+                    }
+                  });
+                } else {
+                  console.log('没有找到实体数据');
+                }
+              } catch (err) {
+                console.error('处理BSP数据时出错:', err);
+              }
+            }, 500); // 增加等待时间到500ms
+          }
+        });
+
+        // 监听加载错误，忽略音频解码错误
+        viewer.game.loader.events.on('error', (error) => {
+          // 检查错误消息而不是类型
+          if (!error.message?.includes('Unable to decode audio data')) {
+            console.error('加载错误:', error);
+          }
+        });
       })
     </script>
   </body>
