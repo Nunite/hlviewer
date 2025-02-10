@@ -7,6 +7,7 @@
     <title>hlviewer.js</title>
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?" />
     <link rel="stylesheet" href="dist/hlviewer.css">
+
     <style>
       html,
       body {
@@ -15,21 +16,24 @@
         width: 100%;
         height: 100%;
         overflow-x: hidden;
+        background-color: #000000;
       }
       body {
         display: flex;
         flex-flow: column;
-        font-family: 'Tahoma', sans-serif;
-        color: #333;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+        color: #ffffff;
       }
       a {
-        color: #333;
+        color: #ffffff;
       }
       header {
-        background: #fff;
-        border-bottom: 1px solid #ddd;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
+        background: rgba(28, 28, 30, 0.9);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
       }
       header .wrapper {
         display: flex;
@@ -51,31 +55,41 @@
       }
       header .wrapper .line2 {
         text-align: center;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1em;
+        line-height: 1.5;
       }
       header .wrapper .line1 .left {
         display: flex;
       }
       header .title {
         margin: 0;
-        font-weight: normal;
-        letter-spacing: 4px;
-        margin-left: 10px;
-        font-size: 30pt;
+        font-weight: 500;
+        letter-spacing: -0.5px;
+        margin-left: 12px;
+        font-size: 32px;
       }
       .nav-link {
         display: flex;
-        padding: 10px;
-        background: #fff;
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
         text-decoration: none;
-        border: 1px solid #ddd;
+        border: none;
+        border-radius: 12px;
+        transition: all 0.3s ease;
       }
       .nav-link:hover {
-        background: #f0f0f0;
+        background: rgba(255, 255, 255, 0.2);
+        transform: scale(1.05);
       }
       .content {
         margin: 0 auto;
         width: 960px;
         height: 600px;
+        background: rgba(28, 28, 30, 0.8);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
       @media (max-width: 998px) {
         .content {
@@ -86,6 +100,28 @@
       #hlv-target {
         width: 100%;
         height: 100%;
+        border-radius: 16px;
+        position: relative;
+      }
+      .octicon path {
+        fill: #ffffff;
+      }
+      /* 修改字幕显示区域的样式 */
+      .subtitle-container {
+        position: absolute;
+        bottom: 100px; /* 调整位置，避免被播放控件遮挡 */
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        padding: 10px 20px;
+        border-radius: 5px;
+        color: white;
+        text-align: center;
+        white-space: pre-line;
+        z-index: 9999; /* 确保字幕在最上层 */
+        font-size: 16px;
+        min-width: 200px; /* 设置最小宽度 */
+        pointer-events: none; /* 防止字幕遮挡点击事件 */
       }
     </style>
   </head>
@@ -125,71 +161,257 @@
     </header>
 
     <div class="content">
-      <div id="hlv-target"></div>
+      <div id="hlv-target">
+        <div id="subtitle" class="subtitle-container"></div>
+      </div>
     </div>
 
     <script src="dist/hlviewer.min.js"></script>
+    <script src="src/hldemo.min.js"></script>
+    <script src="src/demoDataConverter.js"></script>
+    <script src="src/main.js"></script>
     <script>
+      // 添加帧率常量
+      const FRAMES_PER_SECOND = 100;
+
+      // 添加字幕生成相关函数
+      function formatTime(frame) {
+        const totalSeconds = frame / FRAMES_PER_SECOND;
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = Math.floor(totalSeconds % 60);
+        const milliseconds = Math.floor((totalSeconds * 1000) % 1000);
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')},${milliseconds.toString().padStart(3, '0')}`;
+      }
+
+      function getBhopsText(data) {
+        const fog1 = data.FOG1 || 0;
+        const fog2 = data.FOG2 || 0;
+        const fog3Plus = data.FOG3_plus || 0;
+        const total = fog1 + fog2 + fog3Plus;
+        return `Bhops:${total}(${fog1} ${fog2} ${fog3Plus})`;
+      }
+
+      function getFogText(data) {
+        const fog = data.FOG;
+        let fogText = `FOG: ${fog}`;
+        
+        if (fog === 1 && data.Fog1Speed !== undefined) {
+          fogText += ` (IF FOG 2: ${data.Fog2Speed})`;
+        } else if (fog === 2 && data.Fog2Speed !== undefined) {
+          fogText += ` (IF FOG 1: ${data.Fog1Speed})`;
+        }
+        
+        return fogText;
+      }
+
+      function getSubtitleText(data) {
+        const fog = data.FOG;
+        const horizontalSpeed = data.HorizontalSpeed;
+        const jumpState = data.JumpState;
+        const addSpeed = data.AddSpeed;
+        
+        // 当JumpState为None时，只显示HorizontalSpeed
+        if (jumpState === 'None') {
+          return `${horizontalSpeed}\n \n `;
+        }
+        
+        let subtitleText = '';
+        if (fog >= 3) {
+          subtitleText = `[${jumpState}] Bad ${horizontalSpeed}(${addSpeed})\n`;
+          subtitleText += `${getFogText(data)}\n`;
+          subtitleText += getBhopsText(data);
+        } else if (horizontalSpeed === 239.98) {
+          const fogNum = data.FOG1 === 1 ? 1 : 2;
+          subtitleText = `Your [${jumpState}] prestrafe ${data.Fog1Speed}(${addSpeed}) is too high(300.0)\n`;
+          subtitleText += `${getFogText(data)}\n`;
+          subtitleText += getBhopsText(data);
+        } else if (fog === 1) {
+          subtitleText = `[${jumpState}] Perfect ${horizontalSpeed}(${addSpeed})\n`;
+          subtitleText += `${getFogText(data)}\n`;
+          subtitleText += getBhopsText(data);
+        } else if (fog === 2) {
+          subtitleText = `[${jumpState}] Good ${horizontalSpeed}(${addSpeed})\n`;
+          subtitleText += `${getFogText(data)}\n`;
+          subtitleText += getBhopsText(data);
+        }
+        
+        return subtitleText;
+      }
+
+      // 修改generateSubtitleData函数
+      function generateSubtitleData(fogData, duration = 1.0) { // 增加默认持续时间到1秒
+        if (!fogData || !fogData.length) return [];
+        
+        const subtitles = [];
+        let i = 0;
+        
+        while (i < fogData.length) {
+          const currentData = fogData[i];
+          const currentFrame = currentData.Frame;
+          const subtitleText = getSubtitleText(currentData);
+          
+          if (!subtitleText) {
+            i++;
+            continue;
+          }
+          
+          // 计算当前字幕的结束帧
+          let endFrame = currentFrame + Math.floor(duration * FRAMES_PER_SECOND);
+          
+          // 检查下一个字幕是否会与当前字幕重叠
+          let nextStartFrame = Infinity;
+          let nextIndex = i + 1;
+          
+          // 寻找下一个有效字幕
+          while (nextIndex < fogData.length) {
+            const nextText = getSubtitleText(fogData[nextIndex]);
+            if (nextText) {
+              nextStartFrame = fogData[nextIndex].Frame;
+              break;
+            }
+            nextIndex++;
+          }
+
+          // 如果下一个字幕会重叠，调整当前字幕的结束时间
+          if (nextStartFrame < endFrame) {
+            // 给字幕之间留一点间隔（5帧）
+            endFrame = nextStartFrame - 5;
+          }
+          
+          // 确保最小显示时间（至少20帧 = 0.2秒）
+          const minDuration = 20;
+          if (endFrame - currentFrame < minDuration) {
+            endFrame = currentFrame + minDuration;
+          }
+          
+          subtitles.push({
+            startFrame: currentFrame,
+            endFrame: endFrame,
+            text: subtitleText
+          });
+          
+          // 更新索引
+          i = nextStartFrame < endFrame ? nextIndex : i + 1;
+        }
+        
+        return subtitles;
+      }
+
       document.addEventListener('DOMContentLoaded', () => {
         var viewer = HLViewer.init('#hlv-target', 'res')
-        viewer.load('kz_skyline_Lws_0124.77.dem')
-        viewer.setTitle('Simple kz_skyline')
         
-        // 监听BSP加载事件
-        viewer.game.loader.events.on('loadstart', (item) => {
-          if (item.type === 'bsp') {
-            console.log('开始加载BSP:', item.name);
-          }
-        });
-
-        viewer.game.loader.events.on('progress', (item) => {
-          if (item.type === 'bsp' && item.progress === 1) {
-            console.log('BSP加载完成');
+        // 对viewer.load使用相对于replays的路径
+        const viewerDemoPath = 'kz_skyline_Lws_0124.77.dem';
+        // 对fetch使用完整路径
+        const fetchDemoPath = 'res/replays/kz_skyline_Lws_0124.77.dem';
+        
+        // 加载demo文件到viewer
+        viewer.load(viewerDemoPath);
+        viewer.setTitle('Simple kz_skyline');
+        
+        // 使用fetch获取文件
+        fetch(fetchDemoPath)
+          .then(response => response.blob())
+          .then(blob => {
+            console.log('Demo file loaded');
+            const demoReader = new HLDemo.DemoReader();
             
-            // 等待一小段时间确保数据处理完成
-            setTimeout(() => {
+            demoReader.onready(function() {
+              console.log('Demo reader ready');
               try {
-                // 尝试从不同路径获取BSP数据
-                const bsp = viewer.game.scene?.bsp || 
-                           viewer.game.worldScene?.bsp || 
-                           viewer.game.loader.map?.data;
-                           
-                if (!bsp) {
-                  console.log('BSP数据未找到');
-                  return;
-                }
-
-                console.log('地图名称:', bsp.name);
+                const frames = demoReader.directoryEntries[1].frames;
+                //console.log('Raw frames:', frames);
                 
-                // 遍历实体查找 MDL 模型
-                if (bsp.entities) {
-                  bsp.entities.forEach((entity, index) => {
-                    if (entity.model && entity.model.toLowerCase().endsWith('.mdl')) {
-                      console.log(`实体 ${index}:`);
-                      console.log(`- 模型: ${entity.model}`);
-                      console.log(`- 位置: ${entity.origin || '未知'}`);
-                      console.log(`- 角度: ${entity.angles || '未知'}`);
-                      console.log(`- 类名: ${entity.classname || '未知'}`);
+                const parsedData = parseFrames(frames);
+                //console.log('Parsed data:', parsedData);
+                
+                if(parsedData) {
+                  try {
+                    const fogData = calculateFog(parsedData, viewerDemoPath);
+                    //console.log('FOG数据分析开始...');
+                    //console.log('文件名:', viewerDemoPath);
+                    //console.log('FOG数据分析结果:', fogData);
+                    
+                    // 生成字幕数据
+                    const subtitleData = generateSubtitleData(fogData);
+                    //console.log('字幕数据:', subtitleData);
+                    
+                    // 设置字幕显示逻辑
+                    const subtitleElement = document.getElementById('subtitle');
+                    
+                    // 修改字幕显示逻辑部分
+                    function updateSubtitle() {
+                      // 尝试从player对象获取当前帧
+                      if (viewer && viewer.game && viewer.game.player) {
+                        // 添加调试信息
+                        // console.log('Player state:', {
+                        //   currentTick: viewer.game.player.currentTick,
+                        //   currentTime: viewer.game.player.currentTime,
+                        //   currentFrame: viewer.game.player.currentFrame,
+                        //   state: viewer.game.player.state
+                        // });
+                        
+                        // 从player获取当前帧
+                        let currentFrame = viewer.game.player.currentTick;
+                        
+                        // 如果找到了当前帧
+                        if (currentFrame !== undefined) {
+                          // 查找当前帧应该显示的字幕
+                          const currentSubtitle = subtitleData.find(
+                            sub => currentFrame >= sub.startFrame && currentFrame < sub.endFrame
+                          );
+                          
+                          if (currentSubtitle) {
+                            //console.log('显示字幕:', currentSubtitle.text);
+                            subtitleElement.textContent = currentSubtitle.text;
+                            subtitleElement.style.display = 'block';
+                          } else {
+                            subtitleElement.style.display = 'none';
+                          }
+                        }
+                      }
+                      
+                      requestAnimationFrame(updateSubtitle);
                     }
-                  });
+                    
+                    // 在开始监听之前添加更长的延迟，并确保demo已经开始播放
+                    setTimeout(() => {
+                      //console.log('Starting subtitle update');
+                      // 尝试开始播放demo
+                      if (viewer && viewer.game && viewer.game.player && viewer.game.player.play) {
+                        viewer.game.player.play();
+                      }
+                      updateSubtitle();
+                    }, 3000); // 等待3秒确保game完全初始化
+                    
+                    // 打印一些统计信息
+                    const stats = {
+                      totalJumps: fogData.length,
+                      fog1Count: fogData[fogData.length - 1]?.FOG1 || 0,
+                      fog2Count: fogData[fogData.length - 1]?.FOG2 || 0,
+                      fog3plusCount: fogData[fogData.length - 1]?.FOG3_plus || 0
+                    };
+                    
+                    //console.log('统计信息:', stats);
+                  } catch (error) {
+                    console.error('FOG分析错误:', error);
+                  }
                 } else {
-                  console.log('没有找到实体数据');
+                  console.log('No parsed data available');
                 }
-              } catch (err) {
-                console.error('处理BSP数据时出错:', err);
+              } catch (error) {
+                console.error('Error processing frames:', error);
               }
-            }, 500); // 增加等待时间到500ms
-          }
-        });
-
-        // 监听加载错误，忽略音频解码错误
-        viewer.game.loader.events.on('error', (error) => {
-          // 检查错误消息而不是类型
-          if (!error.message?.includes('Unable to decode audio data')) {
-            console.error('加载错误:', error);
-          }
-        });
-      })
+            });
+            
+            const file = new File([blob], viewerDemoPath);
+            demoReader.parse(file);
+          })
+          .catch(error => {
+            console.error('Error fetching demo:', error);
+          });
+      });
     </script>
   </body>
 </html>
