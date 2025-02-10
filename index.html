@@ -7,7 +7,31 @@
     <title>hlviewer.js</title>
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?" />
     <link rel="stylesheet" href="dist/hlviewer.css">
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" type="text/css" href="css/basestyles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js/hldemo.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/demoDataConverter.js"></script>
+    <script>
+        window.onerror = function (msg, url, line, col, error) {
+            console.error('Error: ' + msg + '\nurl: ' + url + '\nline: ' + line);
+            return false;
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
+      :root {
+        --system-gray1: #1c1c1e;
+        --system-gray2: #2c2c2e;
+        --system-gray3: #3a3a3c;
+        --system-gray6: #808080;
+        --text-primary: #ffffff;
+        --text-secondary: rgba(255, 255, 255, 0.7);
+        --accent-color: #0a84ff;
+      }
+      
       html,
       body {
         margin: 0;
@@ -15,21 +39,24 @@
         width: 100%;
         height: 100%;
         overflow-x: hidden;
+        background-color: var(--system-gray1);
       }
       body {
         display: flex;
         flex-flow: column;
-        font-family: 'Tahoma', sans-serif;
-        color: #333;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+        color: var(--text-primary);
       }
       a {
-        color: #333;
+        color: var(--text-primary);
       }
       header {
-        background: #fff;
-        border-bottom: 1px solid #ddd;
-        padding-bottom: 10px;
-        margin-bottom: 20px;
+        background: var(--system-gray2);
+        border-bottom: 1px solid var(--system-gray3);
+        padding-bottom: 16px;
+        margin-bottom: 24px;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
       }
       header .wrapper {
         display: flex;
@@ -51,44 +78,102 @@
       }
       header .wrapper .line2 {
         text-align: center;
+        color: var(--text-secondary);
+        font-size: 15px;
+        line-height: 1.4;
+        max-width: 600px;
+        margin: 0 auto;
       }
       header .wrapper .line1 .left {
         display: flex;
       }
       header .title {
         margin: 0;
-        font-weight: normal;
-        letter-spacing: 4px;
-        margin-left: 10px;
-        font-size: 30pt;
+        font-weight: 500;
+        letter-spacing: -0.5px;
+        margin-left: 12px;
+        font-size: 28px;
       }
       .nav-link {
         display: flex;
-        padding: 10px;
-        background: #fff;
+        padding: 12px;
+        background: var(--system-gray3);
         text-decoration: none;
-        border: 1px solid #ddd;
+        border: none;
+        border-radius: 12px;
+        transition: all 0.2s ease;
       }
       .nav-link:hover {
-        background: #f0f0f0;
-      }
-      .content {
-        margin: 0 auto;
-        width: 960px;
-        height: 600px;
-      }
-      @media (max-width: 998px) {
-        .content {
-          width: 95%;
-          height: 500px;
-        }
+        background: var(--system-gray6);
       }
       #hlv-target {
         width: 100%;
         height: 100%;
+        background: var(--system-gray1);
+      }
+      
+      /* GitHub icon color adjustment */
+      .octicon path {
+        fill: var(--text-primary);
+      }
+      
+      .upload-container {
+          display: flex;
+          align-items: center;
+      }
+      
+      .upload-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 20px;
+          background: var(--accent-color);
+          color: var(--text-primary);
+          border-radius: 12px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          border: none;
+          outline: none;
+          box-shadow: 0 2px 8px rgba(10, 132, 255, 0.3);
+      }
+      
+      .upload-btn:hover {
+          background: #0070e0;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(10, 132, 255, 0.4);
+      }
+      
+      .upload-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 4px rgba(10, 132, 255, 0.3);
+      }
+      
+      .upload-btn svg {
+          width: 20px;
+          height: 20px;
+          stroke: currentColor;
+      }
+      
+      .upload-btn span {
+          white-space: nowrap;
+      }
+      
+      @media (max-width: 768px) {
+          .upload-btn {
+              padding: 8px 16px;
+              font-size: 13px;
+          }
+          
+          .upload-btn svg {
+              width: 16px;
+              height: 16px;
+          }
       }
     </style>
   </head>
+  
   <body>
     <header>
       <div class="wrapper">
@@ -98,6 +183,17 @@
             <h1 class="title">HLViewer</h1>
           </div>
           <div class="right">
+            <div class="upload-container">
+              <label class="upload-btn">
+                <input type="file" id="fileInput" accept=".dem" onchange="handleFileUpload(event)" multiple style="display: none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <span>上传文件</span>
+              </label>
+            </div>
             <a href="https://github.com/Nunite/hlviewer" class="nav-link" target="_blank">
               <svg
                 class="octicon octicon-mark-github v-align-middle"
@@ -124,71 +220,1177 @@
       </div>
     </header>
 
-    <div class="content">
-      <div id="hlv-target"></div>
+    <div class="content-wrapper">
+      <div class="content">
+        <div id="hlv-target"></div>
+      </div>
     </div>
+    <div class="container">
+      <!-- 左侧文件面板 -->
+      <div class="sidebar">
+          <div class="file-list" id="fileList">
+              <div class="file-list-header">
+                  <h3>已加载文件</h3>
+              </div>
+              <div id="fileTableContainer"></div>
+          </div>
+      </div>
+      <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
 
+      <!-- 主要内容区域 -->
+      <div class="main-content">
+          <div class="chart-container">
+              <div id="chartContainer" class="echarts-container"></div>
+          </div>
+      </div>
+
+      <!-- 右侧控制面板 -->
+      <div class="right-panel">
+          <h3>工具选项</h3>
+          <div class="tool-option">
+              <label>
+                  <input type="checkbox" id="showTBJ" onchange="toggleTBJDisplay()">
+                  TBJ显示
+              </label>
+          </div>
+          <div class="tool-option">
+              <label>
+                  <input type="checkbox" id="showChart" checked onchange="toggleChartDisplay()">
+                  图表显示
+              </label>
+          </div>
+          <div id="tbjStats" class="tbj-panel">
+              <h4>TBJ 统计</h4>
+              <div class="stat-item">
+                  <label>总跳跃数:</label>
+                  <span id="totalJumps">-</span>
+              </div>
+              <div class="stat-item">
+                  <label>成功TBJ次数:</label>
+                  <span id="successfulTBJ">-</span>
+              </div>
+              <div class="stat-item">
+                  <label>TBJ成功率:</label>
+                  <span id="tbjSuccessRate" class="highlight-stat">-</span>
+              </div>
+              <div class="stat-item">
+                  <label>最大连续TBJ次数:</label>
+                  <span id="maxConsecutiveTBJ" class="highlight-stat">-</span>
+              </div>
+              <div class="stat-item">
+                  <label>连续TBJ详情:</label>
+                  <div id="consecutiveTBJDetails"></div>
+              </div>
+              <div class="disclaimer">
+                  注意：本工具的分析结果仅供参考，请勿盲目作为判定依据
+              </div>
+          </div>
+          <div id="speedStats" class="tbj-panel">
+              <h4>平均速度统计</h4>
+              <div id="timerSpeedDetails">
+                  <!-- 动态填充计时器速度数据 -->
+              </div>
+              <div class="disclaimer">
+                  注意：速度统计基于计时器起止帧计算
+              </div>
+          </div>
+          <hr style="margin: 20px 0;">
+          <h3>颜色设置</h3>
+          <div class="command-options">
+              <!-- 颜色选择器 -->
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="yaw-speed-color" value="#1E90FF"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #1E90FF"></span>
+                  <label>Yaw Speed</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="use-color" value="#FF4500" style="display: none;">
+                  <span class="color-indicator" style="background: #FF4500"></span>
+                  <label>use</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="moveleft-color" value="#32CD32" style="display: none;">
+                  <span class="color-indicator" style="background: #32CD32"></span>
+                  <label>moveleft</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="moveright-color" value="#9370DB"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #9370DB"></span>
+                  <label>moveright</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="moveforward-color" value="#FFD700"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #FFD700"></span>
+                  <label>moveforward</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="moveback-color" value="#FF69B4"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #FF69B4"></span>
+                  <label>moveback</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="jump-color" value="#00CED1" style="display: none;">
+                  <span class="color-indicator" style="background: #00CED1"></span>
+                  <label>jump</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="valid-jump-color" value="#00FF00"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #00FF00"></span>
+                  <label>Valid jump</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="ground-color" value="#808080" style="display: none;">
+                  <span class="color-indicator" style="background: #808080"></span>
+                  <label>ground</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="duck-color" value="#8B4513" style="display: none;">
+                  <span class="color-indicator" style="background: #8B4513"></span>
+                  <label>duck</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="duck-start-color" value="#A0522D"
+                      style="display: none;">
+                  <span class="color-indicator" style="background: #A0522D"></span>
+                  <label>Duck start</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="duck-end-color" value="#8B4513" style="display: none;">
+                  <span class="color-indicator" style="background: #8B4513"></span>
+                  <label>Duck end</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="forward-color" value="#4682B4" style="display: none;">
+                  <span class="color-indicator" style="background: #4682B4"></span>
+                  <label>forward</label>
+              </div>
+              <div class="command-option">
+                  <input type="color" class="color-picker" id="back-color" value="#CD5C5C" style="display: none;">
+                  <span class="color-indicator" style="background: #CD5C5C"></span>
+                  <label>back</label>
+              </div>
+          </div>
+      </div>
+      <button class="right-panel-toggle"
+          onclick="document.querySelector('.right-panel').classList.toggle('open')">☰</button>
+    </div>
     <script src="dist/hlviewer.min.js"></script>
+    <script>
+      let chart = null;
+      let loadedFiles = []; // 存储已加载的文件
+      let chartState = {
+          dataZoom: null  // 存储滑块状态
+      };
+      let currentDemoData = null; // 存储当前的demo数据
+      let AllFramesNum = null; // 存储帧数据
+      //let currentFileName =null; // 存储当前文件名
+
+      function handleFileUpload(event) {
+          console.log('文件上传开始');
+          const files = event.target.files;
+          console.log('文件数量:', files.length);
+
+          for (let i = 0; i < files.length; i++) {
+              const file = files[i];
+              console.log('处理文件:', file.name);
+
+              const reader = new FileReader();
+
+              reader.onload = function (e) {
+                  console.log('文件已加载:', file.name);
+                  const demoReader = new HLDemo.DemoReader();
+
+                  demoReader.onready = function () {
+                      console.log('Demo解析成功');
+                      try {
+                          const frames = demoReader.directoryEntries[1].frames;
+                          
+                          console.log('帧数:', frames.length);
+
+                          // 使用main.js中的parseFrames处理数据
+                          const parsedData = parseFrames(frames);
+                          console.log('解析后的数据:', parsedData);
+
+                          // 显示文件名
+                          //document.getElementById('fileName').textContent = '当前文件: ' + file.name;
+
+                          // 初始化图表
+                          const chartData = convertDemoData(parsedData);
+                          chartData.fileName = file.name;  // 添加文件名到数据中
+                          //currentFileName=file.name;
+                          initChart(chartData);
+
+                          // 更新TBJ统计信息
+                          const tbjStats = analyzeTBJFromParsedData(parsedData);
+                          document.getElementById('totalJumps').textContent = tbjStats.totalJumps;
+                          document.getElementById('successfulTBJ').textContent = tbjStats.successfulTBJ;
+                          document.getElementById('tbjSuccessRate').textContent = tbjStats.tbjSuccessRate;
+                          document.getElementById('maxConsecutiveTBJ').textContent = tbjStats.maxConsecutiveTBJ;
+                          
+                          // 显示连续TBJ的详细信息
+                          const detailsElement = document.getElementById('consecutiveTBJDetails');
+                          if (tbjStats.consecutiveTBJData && tbjStats.consecutiveTBJData.length > 0) {
+                              const details = tbjStats.consecutiveTBJData
+                                  .filter(data => data.count > 1)  // 只显示连续次数大于1的
+                                  .sort((a, b) => b.count - a.count)  // 按连续次数从大到小排序
+                                  .map(data => {
+                                      const frames = `帧 ${data.startFrame}-${data.endFrame}`;
+                                      return `<div class="consecutive-item">${frames}: ${data.count} 次</div>`;
+                                  })
+                                  .join('');
+                              detailsElement.innerHTML = details || '<div class="consecutive-item">无连续TBJ</div>';
+                          } else {
+                              detailsElement.innerHTML = '<div class="consecutive-item">无连续TBJ</div>';
+                          }
+                      } catch (error) {
+                          console.error('处理Demo时出错:', error);
+                      }
+                  };
+
+                  demoReader.parse(file);
+              };
+
+              reader.onerror = function (error) {
+                  console.error('文件读取错误:', error);
+              };
+
+              reader.readAsArrayBuffer(file);
+          }
+      }
+
+      function initChart(data) {
+          // 如果已经存在图表实例，销毁它
+          if (window.chart) {
+              window.chart.dispose();
+          }
+          
+          // 初始化新的图表实例
+          window.chart = echarts.init(document.getElementById('chartContainer'));
+
+          const option = {
+              title: [
+                  { text: '当前文件：' + data.fileName, left: 'center', top: 10, textStyle: { fontSize: 14, color: '#ffffff' } },
+                  { top: 205, left: 5, text: "Yaw Speed", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 345, left: 5, text: "use", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 375, left: 5, text: "moveleft", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 405, left: 5, text: "moveright", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 435, left: 5, text: "moveforward", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 465, left: 5, text: "moveback", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 495, left: 5, text: "jump", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 525, left: 5, text: "ground", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 555, left: 5, text: "duck", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 585, left: 5, text: "forward", textStyle: { fontSize: 12, color: '#ffffff' } },
+                  { top: 615, left: 5, text: "back", textStyle: { fontSize: 12, color: '#ffffff' } }
+              ],
+              tooltip: {
+                  trigger: 'axis',
+                  formatter: function (params) {
+                      // 找到当前帧的索引
+                      const frameIndex = params[0].dataIndex;
+                      const frame = data.data[frameIndex].frame;
+
+                      // 构建显示信息
+                      let result = `Frame: ${frame}<br/>`;
+
+                      // 获取所有数据系列的值
+                      const seriesValues = {
+                          'Yaw Speed': data.data[frameIndex].yawSpeed,
+                          'Horizontal Speed': data.data[frameIndex].horizontalSpeed, // 添加水平速度
+                          //'Vertical Speed': data.data[frameIndex].verticalSpeed,  // 添加垂直速度
+                          'fuser2':data.data[frameIndex].fuser2,
+                          'use': data.data[frameIndex].use ? 'Yes' : 'No',
+                          'moveleft': data.data[frameIndex].moveLeft ? 'Yes' : 'No',
+                          'moveright': data.data[frameIndex].moveRight ? 'Yes' : 'No',
+                          'moveforward': data.data[frameIndex].moveForward ? 'Yes' : 'No',
+                          'moveback': data.data[frameIndex].moveBack ? 'Yes' : 'No',
+                          'jump': data.data[frameIndex].jump ? 'Yes' : 'No',
+                          'ground': data.data[frameIndex].ground ? 'Yes' : 'No',
+                          'duck': data.data[frameIndex].duck ? 'Yes' : 'No',
+                          'forward': data.data[frameIndex].forward ? 'Yes' : 'No',
+                          'back': data.data[frameIndex].back ? 'Yes' : 'No'
+                      };
+
+                      // 添加每个系列的值
+                      Object.entries(seriesValues).forEach(([name, value]) => {
+                          if (typeof value === 'number') {
+                              result += `${name}: ${value.toFixed(6)}<br/>`;
+                          } else {
+                              result += `${name}: ${value}<br/>`;
+                          }
+                      });
+
+                      return result;
+                  },
+                  backgroundColor: 'rgba(44, 44, 46, 0.95)',  // 暗色背景
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderWidth: 1,
+                  padding: [5, 10],
+                  textStyle: {
+                      color: '#ffffff'  // 白色文字
+                  }
+              },
+              dataZoom: [{
+                  type: 'slider',
+                  xAxisIndex: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+                  top: 50,
+                  height: 30,
+                  start: 0,
+                  end: (196 / AllFramesNum) * 100,
+                  zoomLock: true,
+                  realtime: true,  // 实时更新
+                  showDetail: true,  // 显示详细信息
+                  showDataShadow: true,  // 显示数据阴影
+                  left: 120,  // 与图表对齐
+                  right: 20,  // 与图表对齐
+                  handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+                  handleSize: '80%',
+                  handleStyle: {
+                      color: '#fff',
+                      shadowBlur: 3,
+                      shadowColor: 'rgba(0, 0, 0, 0.6)',
+                      shadowOffsetX: 2,
+                      shadowOffsetY: 2
+                  },
+                  textStyle: {
+                      color: '#fff',
+                      fontSize: 12
+                  },
+                  borderColor: '#ccc',
+                  backgroundColor: 'rgba(44, 44, 46, 0.5)',  // 与图表背景一致
+                  fillerColor: 'rgba(167,183,204,0.4)',
+                  labelFormatter: (value) => {
+                      const frameIndex = Math.round((value / 100) * AllFramesNum);
+                      return `Tick: ${frameIndex}`;
+                  }
+              }],
+              grid: [
+                  { left: 120, right: 20, top: 90, height: 250, borderWidth: 2, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 340, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 370, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 400, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 430, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 460, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 490, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 520, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 550, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 580, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' },
+                  { left: 120, right: 20, height: 30, top: 610, borderWidth: 1, show: true, borderColor: 'rgba(255, 255, 255, 0.1)', backgroundColor: 'rgba(44, 44, 46, 0.5)' }
+              ],
+              xAxis: Array.from({ length: 11 }, (_, i) => ({
+                  type: 'category',
+                  data: data.data.map(d => d.frame),
+                  gridIndex: i,
+                  show: false,  // 隐藏所有轴的显示
+                  axisLabel: { show: false },  // 隐藏刻度标签
+                  axisLine: {
+                      lineStyle: {
+                          color: 'rgba(255, 255, 255, 0.2)'
+                      }
+                  },
+                  axisPointer: {
+                      show: true,
+                      type: 'line',
+                      lineStyle: {
+                          type: 'dashed',
+                          width: 1,
+                          color: '#ff4081'
+                      },
+                      label: {
+                          show: i === 10,  // 只在最后一个轴上显示标签
+                          formatter: 'Tick: {value}'
+                      }
+                  },
+                  splitLine: {
+                      lineStyle: {
+                          color: 'rgba(255, 255, 255, 0.1)'
+                      }
+                  }
+              })),
+              yAxis: Array.from({ length: 11 }, (_, i) => ({
+                  type: 'value',
+                  gridIndex: i,
+                  show: true,
+                  axisLine: { show: false },
+                  axisTick: { show: i === 0, lineStyle: { color: 'rgba(255, 255, 255, 0.2)' } },
+                  splitLine: { 
+                      show: i === 0,
+                      lineStyle: {
+                          color: 'rgba(255, 255, 255, 0.1)'
+                      }
+                  },
+                  axisLabel: { show: i === 0, color: '#ffffff' },
+                  min: i === 0 ? null : 0,
+                  max: i === 0 ? null : 1
+              })),
+              series: [
+                  {
+                      name: 'Yaw Speed',
+                      type: 'line',
+                      data: data.data.map(d => d.yawSpeed),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('yaw-speed-color', '#1E90FF')
+                      }
+                  },
+                  {
+                      name: 'use',
+                      type: 'bar',
+                      xAxisIndex: 1,
+                      yAxisIndex: 1,
+                      data: data.data.map(d => d.use),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('use-color', '#FF4500')
+                      }
+                  },
+                  {
+                      name: 'moveleft',
+                      type: 'bar',
+                      xAxisIndex: 2,
+                      yAxisIndex: 2,
+                      data: data.data.map(d => d.moveLeft ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('moveleft-color', '#32CD32')
+                      }
+                  },
+                  {
+                      name: 'moveright',
+                      type: 'bar',
+                      xAxisIndex: 3,
+                      yAxisIndex: 3,
+                      data: data.data.map(d => d.moveRight ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('moveright-color', '#9370DB')
+                      }
+                  },
+                  {
+                      name: 'moveforward',
+                      type: 'bar',
+                      xAxisIndex: 4,
+                      yAxisIndex: 4,
+                      data: data.data.map(d => d.moveForward ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('moveforward-color', '#FFD700')
+                      }
+                  },
+                  {
+                      name: 'moveback',
+                      type: 'bar',
+                      xAxisIndex: 5,
+                      yAxisIndex: 5,
+                      data: data.data.map(d => d.moveBack ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('moveback-color', '#FF69B4')
+                      }
+                  },
+                  {
+                      name: 'jump',
+                      type: 'bar',
+                      xAxisIndex: 6,
+                      yAxisIndex: 6,
+                      data: data.data.map(d => ({
+                          value: d.jump ? 1 : 0,
+                          itemStyle: {
+                              color: d.validJump ? getColorValue('valid-jump-color', '#00FF00') :
+                                  getColorValue('jump-color', '#00CED1')
+                          }
+                      })),
+                      animation: false,
+                      show: true
+                  },
+                  {
+                      name: 'ground',
+                      type: 'bar',
+                      xAxisIndex: 7,
+                      yAxisIndex: 7,
+                      data: data.data.map(d => d.ground ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('ground-color', '#808080')
+                      }
+                  },
+                  {
+                      name: 'duck',
+                      type: 'bar',
+                      xAxisIndex: 8,
+                      yAxisIndex: 8,
+                      data: data.data.map((d, index, array) => {
+                          if (!d.duck) return 0;
+
+                          // 检查当前帧是否是一段连续duck的起始或结束
+                          let isStart = false;
+                          let isEnd = false;
+
+                          // 判断是否是起始帧：当前帧是duck且前一帧不是duck
+                          if (index === 0 || !array[index - 1].duck) {
+                              isStart = true;
+                          }
+
+                          // 判断是否是结束帧：当前帧是duck且后一帧不是duck
+                          if (index === array.length - 1 || !array[index + 1].duck) {
+                              isEnd = true;
+                          }
+
+                          // 根据帧的位置返回不同的样式
+                          return {
+                              value: 1,
+                              itemStyle: {
+                                  color: isStart ? getColorValue('duck-start-color', '#A0522D') :
+                                      isEnd ? getColorValue('duck-end-color', '#8B4513') :
+                                          getColorValue('duck-color', '#8B4513')
+                              }
+                          };
+                      }),
+                      animation: false,
+                      show: true
+                  },
+                  {
+                      name: 'forward',
+                      type: 'bar',
+                      xAxisIndex: 9,
+                      yAxisIndex: 9,
+                      data: data.data.map(d => d.forward ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('forward-color', '#4682B4')
+                      }
+                  },
+                  {
+                      name: 'back',
+                      type: 'bar',
+                      xAxisIndex: 10,
+                      yAxisIndex: 10,
+                      data: data.data.map(d => d.back ? 1 : 0),
+                      animation: false,
+                      show: true,
+                      itemStyle: {
+                          color: getColorValue('back-color', '#CD5C5C')
+                      }
+                  }
+              ]
+          };
+
+          // 在设置新的options之前，恢复之前保存的dataZoom状态
+          if (chartState && chartState.dataZoom) {
+              option.dataZoom = chartState.dataZoom;
+          }
+
+          window.chart.setOption(option);
+
+          // 设置全局背景色
+          window.chart.setOption({
+              backgroundColor: '#1c1c1e',  // 与页面背景色一致
+          });
+      }
+      
+      function downloadchart(filename,frameNum){
+      filename=filename.split('.').slice(0, -1).join('.');
+      const chartContainer = document.querySelector('.chart-container');
+      //currentDemoData.fileName = currentFileName;
+      // 设置宽度（支持百分比/像素值）
+      const tempwidth = chartContainer.style.width;
+      customwidth = Math.ceil(AllFramesNum / 196 * 10) + '%';
+      console.log(customwidth); // 输出 "4080%"
+
+      chartContainer.style.width = customwidth; 
+      initChart(currentDemoData);
+          // 获取图表实例后
+          const imgUrl = window.chart.getDataURL({
+          type: 'png',
+          pixelRatio: 2, // 提高清晰度
+          excludeComponents: ['toolbox'], // 排除不必要组件
+          backgroundColor: '#1c1c1e' // 设置背景
+          });
+          
+          // 下载图片
+          const link = document.createElement('a');
+          link.download = filename+'.png';
+          link.href = imgUrl;
+          link.click();
+          chartContainer.style.width = tempwidth;
+          initChart(currentDemoData);
+      }
+
+      function getColorValue(elementId, defaultColor) {
+          const element = document.getElementById(elementId);
+          return element ? element.value : defaultColor;
+      }
+
+      function analyzeDemo() {
+          // 加载示例 .xhr 文件
+          fetch('hrbg_rabbitrun_outside_0121.59.xhr')
+              .then(response => response.json())
+              .then(demoData => {
+                  //document.getElementById('fileName').textContent = '当前文件：' + demoData.fileName;
+                  initChart(demoData);
+              })
+              .catch(error => {
+                  alert("Could not load example demo file");
+              });
+      }
+
+      // 页面加载时不自动初始化图表，等待用户操作
+      window.addEventListener('load', () => {
+          // 可以选择自动加载示例文件
+          // analyzeDemo();
+      });
+
+      // 响应窗口大小变化
+      window.addEventListener('resize', () => {
+          chart && chart.resize();
+      });
+
+      document.addEventListener('DOMContentLoaded', function () {
+          const colorPickers = document.querySelectorAll('.color-picker');
+          const colorIndicators = document.querySelectorAll('.color-indicator');
+
+          // 为颜色指示器添加点击事件
+          colorIndicators.forEach(indicator => {
+              indicator.addEventListener('click', function() {
+                  // 找到对应的颜色选择器并触发点击
+                  const picker = this.previousElementSibling;
+                  if (picker && picker.classList.contains('color-picker')) {
+                      picker.click();
+                  }
+              });
+          });
+
+          // 加载保存的颜色
+          colorPickers.forEach(picker => {
+              const savedColor = localStorage.getItem(picker.id);
+              if (savedColor) {
+                  picker.value = savedColor;
+                  picker.nextElementSibling.style.background = savedColor;
+                  const seriesName = picker.parentNode.querySelector('label').textContent.trim();
+                  updateChartColor(seriesName, savedColor);
+              }
+
+              picker.addEventListener('input', function () {
+                  const selectedColor = this.value;
+                  this.nextElementSibling.style.background = selectedColor;
+                  localStorage.setItem(this.id, selectedColor);
+                  const seriesName = this.parentNode.querySelector('label').textContent.trim();
+                  updateChartColor(seriesName, selectedColor);
+              });
+          });
+      });
+
+      function updateChartColor(seriesName, color) {
+          if (!chart || !currentDemoData) return;
+          
+          // 更新当前series的颜色
+          const option = chart.getOption();
+          
+          // 处理特殊颜色更新
+          if (seriesName === 'Valid jump') {
+              // 当修改valid jump颜色时，更新jump系列
+              const jumpIndex = option.series.findIndex(s => s.name === 'jump');
+              if (jumpIndex !== -1) {
+                  option.series[jumpIndex].data = currentDemoData.data.map(d => ({
+                      value: d.jump ? 1 : 0,
+                      itemStyle: {
+                          color: d.validJump ? color : getColorValue('jump-color', '#00CED1')
+                      }
+                  }));
+                  chart.setOption(option);
+              }
+              return;
+          }
+          
+          if (seriesName === 'Duck start' || seriesName === 'Duck end') {
+              // 当修改duck start或end颜色时，更新duck系列
+              const duckIndex = option.series.findIndex(s => s.name === 'duck');
+              if (duckIndex !== -1) {
+                  option.series[duckIndex].data = currentDemoData.data.map((d, index, array) => {
+                      if (!d.duck) return 0;
+
+                      let isStart = false;
+                      let isEnd = false;
+
+                      if (index === 0 || !array[index - 1].duck) {
+                          isStart = true;
+                      }
+
+                      if (index === array.length - 1 || !array[index + 1].duck) {
+                          isEnd = true;
+                      }
+
+                      return {
+                          value: 1,
+                          itemStyle: {
+                              color: isStart ? getColorValue('duck-start-color', '#A0522D') :
+                                  isEnd ? getColorValue('duck-end-color', '#8B4513') :
+                                      color
+                          }
+                      };
+                  });
+                  chart.setOption(option);
+              }
+              return;
+          }
+
+          // 处理普通命令的颜色更新
+          const seriesIndex = option.series.findIndex(s => s.name === seriesName);
+          if (seriesIndex !== -1) {
+              // 特殊处理jump和duck命令
+              if (seriesName === 'jump') {
+                  // 更新jump的数据
+                  option.series[seriesIndex].data = currentDemoData.data.map(d => ({
+                      value: d.jump ? 1 : 0,
+                      itemStyle: {
+                          color: d.validJump ? getColorValue('valid-jump-color', '#00FF00') :
+                              color
+                      }
+                  }));
+              } else if (seriesName === 'duck') {
+                  // 更新duck的数据
+                  option.series[seriesIndex].data = currentDemoData.data.map((d, index, array) => {
+                      if (!d.duck) return 0;
+
+                      let isStart = false;
+                      let isEnd = false;
+
+                      if (index === 0 || !array[index - 1].duck) {
+                          isStart = true;
+                      }
+
+                      if (index === array.length - 1 || !array[index + 1].duck) {
+                          isEnd = true;
+                      }
+
+                      return {
+                          value: 1,
+                          itemStyle: {
+                              color: isStart ? getColorValue('duck-start-color', '#A0522D') :
+                                  isEnd ? getColorValue('duck-end-color', '#8B4513') :
+                                      color
+                          }
+                      };
+                  });
+              } else {
+                  // 普通命令的颜色更新
+                  option.series[seriesIndex].itemStyle = option.series[seriesIndex].itemStyle || {};
+                  option.series[seriesIndex].itemStyle.color = color;
+              }
+              
+              chart.setOption(option);
+          }
+      }
+
+      function toggleTBJDisplay() {
+          const tbjPanel = document.getElementById('tbjStats');
+          const showTBJ = document.getElementById('showTBJ').checked;
+          tbjPanel.style.display = showTBJ ? 'block' : 'none';
+      }
+
+      // 页面加载时初始化TBJ面板显示状态
+      window.addEventListener('load', () => {
+          toggleTBJDisplay();
+          // 初始化文件列表
+          generateFileTable('#fileList');
+      });
+
+      function openDatabase() {
+          return new Promise((resolve, reject) => {
+              const request = indexedDB.open('fileStore', 1);
+
+              request.onupgradeneeded = (e) => {
+                  const db = e.target.result;
+                  db.createObjectStore('files', { keyPath: 'id' });
+              };
+
+              request.onsuccess = (e) => {
+                  resolve(e.target.result);
+              };
+
+              request.onerror = (e) => {
+                  reject(e.target.error);
+              };
+          });
+      }
+
+      function retrieveAllFiles() {
+          return openDatabase().then((db) => {
+              return new Promise((resolve, reject) => {
+                  const transaction = db.transaction(['files'], 'readonly');
+                  const store = transaction.objectStore('files');
+                  const request = store.getAll();
+
+                  request.onsuccess = () => {
+                      resolve(request.result);
+                  };
+
+                  request.onerror = () => {
+                      reject(request.error);
+                  };
+              });
+          });
+      }
+
+      function processFileFromDatabase(file_id, index = 0) {
+          retrieveFile(file_id)
+              .then(({ file }) => {
+                  // 更新文件名标题
+                  //document.getElementById('currentFileName').textContent = '当前文件：' + file.name;
+                  processFile(file, index);
+              })
+              .catch((error) => {
+                  console.error('Error processing file from database:', error);
+              });
+      }
+
+      function retrieveFile(file_id) {
+          return openDatabase().then((db) => {
+              return new Promise((resolve, reject) => {
+                  const transaction = db.transaction(['files'], 'readonly');
+                  const store = transaction.objectStore('files');
+                  const request = store.get(file_id);
+
+                  request.onsuccess = (event) => {
+                      const result = event.target.result;
+                      if (result) {
+                          resolve({
+                              file: result.file,
+                              metadata: result.metadata || {}
+                          });
+                      } else {
+                          reject('File not found');
+                      }
+                  };
+
+                  request.onerror = () => {
+                      reject(request.error);
+                  };
+              });
+          });
+      }
+
+      function formatFileSize(sizeInBytes) {
+          const units = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
+          let size = sizeInBytes;
+          let unitIndex = 0;
+
+          while (size >= 1024 && unitIndex < units.length - 1) {
+              size /= 1024;
+              unitIndex++;
+          }
+
+          return `${size.toFixed(1)} ${units[unitIndex]}`;
+      }
+
+      function formatDate(date) {
+          const now = new Date();
+          const diff = now - date;
+          const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+          if (days === 0) {
+              const hours = Math.floor(diff / (1000 * 60 * 60));
+              if (hours === 0) {
+                  const minutes = Math.floor(diff / (1000 * 60));
+                  return `${minutes} 分钟前`;
+              }
+              return `${hours} 小时前`;
+          } else if (days < 7) {
+              return `${days} 天前`;
+          } else {
+              return new Date(date).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+              });
+          }
+      }
+
+      function generateFileTable(containerClass) {
+          retrieveAllFiles()
+              .then((files) => {
+                  files.reverse();
+                  let html = '<h3>已加载文件</h3>';
+                  html += '<table>';
+                  html += '<tbody>';
+
+                  files.forEach(file => {
+                      const data = file.file;
+                      const timeStr = formatDate(data.lastModified);
+
+                      html += `
+                      <tr>
+                          <td>
+                              <div class="file-info">
+                                  <a href="#" class="file-name" onclick="processFileFromDatabase('${data.name}', 99);" title="${data.name}">
+                                      ${data.name.length > 25 ? data.name.substring(0, 22) + '...' : data.name}
+                                  </a>
+                                  <div class="download-buttons">
+                                      <div class="dropdown">
+                                          <img src="img/download.png" class="action-btn" title="下载数据">
+                                          <div class="dropdown-content">
+                                              <a href="#" onclick="downloadFogData('${data.name}')">FOG数据</a>
+                                              <a href="#" onclick="downloadDemoData('${data.name}')">Demo数据</a>
+                                              <a href="#" onclick="downloadFramesData('${data.name}')">Frames数据</a>
+                                              <a href="#" onclick="downloadchart('${data.name},${AllFramesNum}')">图表图片</a>
+                                          </div>
+                                      </div>
+                                      <span class="delete-btn" onclick="deleteFile('${data.name}')" title="删除">×</span>
+                                  </div>
+                              </div>
+                              <div class="file-time">${timeStr}</div>
+                          </td>
+                      </tr>`;
+                  });
+
+                  html += '</tbody></table>';
+                  document.querySelector(containerClass).innerHTML = html;
+              })
+              .catch((error) => {
+                  console.error('Error retrieving files:', error);
+              });
+      }
+
+      function deleteFile(fileId) {
+          return openDatabase().then((db) => {
+              return new Promise((resolve, reject) => {
+                  const transaction = db.transaction(['files'], 'readwrite');
+                  const store = transaction.objectStore('files');
+                  const request = store.delete(fileId);
+
+                  request.onsuccess = () => {
+                      generateFileTable('#fileList');
+                      resolve('File deleted successfully');
+                  };
+
+                  request.onerror = () => {
+                      reject(request.error);
+                  };
+              });
+          });
+      }
+
+      function storeFile(file) {
+          return openDatabase().then((db) => {
+              return new Promise((resolve, reject) => {
+                  const transaction = db.transaction(['files'], 'readwrite');
+                  const store = transaction.objectStore('files');
+                  const fileData = {
+                      id: file.name,
+                      file: file
+                  };
+                  const request = store.put(fileData);
+
+                  request.onsuccess = () => {
+                      resolve('File stored successfully');
+                  };
+
+                  request.onerror = () => {
+                      reject(request.error);
+                  };
+              });
+          });
+      }
+
+      function processFile(file, index = 0) {
+          storeFile(file).then(() => {
+              const demoReader = new HLDemo.DemoReader();
+              demoReader.onready(function() {
+                  const frames = demoReader.directoryEntries[1].frames;
+                  const parsedData = parseFrames(frames);
+                  const chartData = convertDemoData(parsedData);
+                  chartData.fileName = file.name;
+                  currentDemoData = chartData;
+                  initChart(chartData);
+                  AllFramesNum = frames.length;
+                  
+                  // 加载相同的 demo 到视频播放器
+                  if (window.hlViewer) {
+                      console.log('Starting to load demo:', file.name);
+                      window.hlViewer.load(file.name);
+                      window.hlViewer.setTitle(file.name);
+                  } else {
+                      console.error('HLViewer not initialized');
+                  }
+                  
+                  // 更新TBJ统计信息
+                  const tbjStats = analyzeTBJFromParsedData(parsedData);
+                  document.getElementById('totalJumps').textContent = tbjStats.totalJumps;
+                  document.getElementById('successfulTBJ').textContent = tbjStats.successfulTBJ;
+                  document.getElementById('tbjSuccessRate').textContent = tbjStats.tbjSuccessRate;
+                  document.getElementById('maxConsecutiveTBJ').textContent = tbjStats.maxConsecutiveTBJ;
+                  
+                  // 显示连续TBJ的详细信息
+                  const detailsElement = document.getElementById('consecutiveTBJDetails');
+                  if (tbjStats.consecutiveTBJData && tbjStats.consecutiveTBJData.length > 0) {
+                      const details = tbjStats.consecutiveTBJData
+                          .filter(data => data.count > 1)  // 只显示连续次数大于1的
+                          .sort((a, b) => b.count - a.count)  // 按连续次数从大到小排序
+                          .map(data => {
+                              const frames = `帧 ${data.startFrame}-${data.endFrame}`;
+                              return `<div class="consecutive-item">${frames}: ${data.count} 次</div>`;
+                          })
+                          .join('');
+                      detailsElement.innerHTML = details || '<div class="consecutive-item">无连续TBJ</div>';
+                  } else {
+                      detailsElement.innerHTML = '<div class="consecutive-item">无连续TBJ</div>';
+                  }
+                  
+                  // 更新平均速度统计信息
+                  const speedDetailsElement = document.getElementById('timerSpeedDetails');
+                  if (chartData.timerStats && chartData.timerStats.length > 0) {
+                      const speedDetails = chartData.timerStats
+                          .map(timer => {
+                              return `
+                                  <div class="stat-item speed-stat-item">
+                                      <div class="speed-main-info">
+                                          <span class="speed-value">${timer.averageSpeed}</span>
+                                          <span class="speed-unit">u/s</span>
+                                      </div>
+                                      <div class="speed-details">
+                                          <div class="frame-range">帧范围: ${timer.startFrame}-${timer.endFrame}</div>
+                                          <div class="frame-duration">持续: ${timer.frameDuration} 帧</div>
+                                      </div>
+                                  </div>`;
+                          })
+                          .join('');
+                      speedDetailsElement.innerHTML = speedDetails || '<div class="stat-item">无计时器数据</div>';
+                  } else {
+                      speedDetailsElement.innerHTML = '<div class="stat-item">无计时器数据</div>';
+                  }
+              });
+
+              demoReader.parse(file);
+          }).catch((error) => {
+              console.error('Error storing file:', error);
+          });
+      }
+
+      function handleFileUpload(event) {
+          const files = event.target.files;
+          if (files.length > 0) {
+              Array.from(files).forEach((file, index) => {
+                  processFile(file, index);
+              });
+              // 刷新文件列表
+              generateFileTable('#fileList');
+          }
+      }
+
+      function toggleChartDisplay() {
+          const showChart = document.getElementById('showChart').checked;
+          const chartContainer = document.querySelector('.chart-container');
+          const contentWrapper = document.querySelector('.content-wrapper');
+          
+          if (showChart) {
+              // 显示图表
+              chartContainer.style.display = 'block';
+              contentWrapper.style.height = 'auto';
+              if (window.chart) {
+                  window.chart.resize();
+              }
+          } else {
+              // 隐藏图表
+              chartContainer.style.display = 'none';
+              contentWrapper.style.height = '100%';
+          }
+      }
+    </script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         var viewer = HLViewer.init('#hlv-target', 'res')
-        viewer.load('kz_skyline_Lws_0124.77.dem')
-        viewer.setTitle('Simple kz_skyline')
+        window.hlViewer = viewer;
         
-        // 监听BSP加载事件
-        viewer.game.loader.events.on('loadstart', (item) => {
-          if (item.type === 'bsp') {
-            console.log('开始加载BSP:', item.name);
-          }
-        });
-
-        viewer.game.loader.events.on('progress', (item) => {
-          if (item.type === 'bsp' && item.progress === 1) {
-            console.log('BSP加载完成');
-            
-            // 等待一小段时间确保数据处理完成
-            setTimeout(() => {
-              try {
-                // 尝试从不同路径获取BSP数据
-                const bsp = viewer.game.scene?.bsp || 
-                           viewer.game.worldScene?.bsp || 
-                           viewer.game.loader.map?.data;
-                           
-                if (!bsp) {
-                  console.log('BSP数据未找到');
-                  return;
-                }
-
-                console.log('地图名称:', bsp.name);
-                
-                // 遍历实体查找 MDL 模型
-                if (bsp.entities) {
-                  bsp.entities.forEach((entity, index) => {
-                    if (entity.model && entity.model.toLowerCase().endsWith('.mdl')) {
-                      console.log(`实体 ${index}:`);
-                      console.log(`- 模型: ${entity.model}`);
-                      console.log(`- 位置: ${entity.origin || '未知'}`);
-                      console.log(`- 角度: ${entity.angles || '未知'}`);
-                      console.log(`- 类名: ${entity.classname || '未知'}`);
-                    }
+        let lastFrame = -1;
+        let chartUpdateEnabled = true;  // 控制图表更新
+        let updateAnimationFrame = null;  // 存储 requestAnimationFrame 的ID
+        
+        function updateChart() {
+          if (!chartUpdateEnabled) return;  // 如果禁用了更新，直接返回
+          
+          const currentFrame = viewer.game.player.currentTick;
+          
+          if (currentFrame !== lastFrame && window.chart && AllFramesNum && currentDemoData) {
+              const frameIndex = currentDemoData.data.findIndex(d => d.frame === currentFrame);
+              if (frameIndex !== -1) {
+                  const centerPercent = (frameIndex / currentDemoData.data.length) * 100;
+                  const halfRange = (30 / currentDemoData.data.length) * 100;
+                  
+                  window.chart.setOption({
+                      dataZoom: [{
+                          start: Math.max(0, centerPercent - halfRange),
+                          end: Math.min(100, centerPercent + halfRange)
+                      }],
+                      xAxis: Array(11).fill({}).map(() => ({
+                          axisPointer: {
+                              show: true,
+                              value: currentFrame,
+                              status: 'show',
+                              snap: true,
+                              lineStyle: {
+                                  type: 'dashed',
+                                  width: 1,
+                                  color: '#ff4081'
+                              },
+                              label: {
+                                  show: true,
+                                  formatter: `Frame: ${currentFrame}`
+                              }
+                          }
+                      }))
                   });
-                } else {
-                  console.log('没有找到实体数据');
-                }
-              } catch (err) {
-                console.error('处理BSP数据时出错:', err);
+                  
+                  lastFrame = currentFrame;
               }
-            }, 500); // 增加等待时间到500ms
           }
-        });
-
-        // 监听加载错误，忽略音频解码错误
-        viewer.game.loader.events.on('error', (error) => {
-          // 检查错误消息而不是类型
-          if (!error.message?.includes('Unable to decode audio data')) {
-            console.error('加载错误:', error);
-          }
-        });
+          
+          updateAnimationFrame = requestAnimationFrame(updateChart);
+        }
+        
+        // 修改 toggleChartDisplay 函数
+        window.toggleChartDisplay = function() {
+            const showChart = document.getElementById('showChart').checked;
+            const chartContainer = document.querySelector('.chart-container');
+            const contentWrapper = document.querySelector('.content-wrapper');
+            
+            if (showChart) {
+                // 显示图表
+                chartContainer.style.display = 'block';
+                contentWrapper.style.height = 'auto';
+                if (window.chart) {
+                    window.chart.resize();
+                }
+                // 重新启动图表更新
+                chartUpdateEnabled = true;
+                lastFrame = -1;  // 重置 lastFrame 以确保更新
+                updateAnimationFrame = requestAnimationFrame(updateChart);
+            } else {
+                // 隐藏图表
+                chartContainer.style.display = 'none';
+                contentWrapper.style.height = '100%';
+                // 停止图表更新
+                chartUpdateEnabled = false;
+                if (updateAnimationFrame) {
+                    cancelAnimationFrame(updateAnimationFrame);
+                    updateAnimationFrame = null;
+                }
+            }
+        };
+        
+        // 启动更新循环
+        updateAnimationFrame = requestAnimationFrame(updateChart);
       })
     </script>
   </body>
