@@ -4,6 +4,11 @@
     <meta charset="utf-8" />
     <meta http-equiv="x-ua-compatible" content="ie=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <meta name="screen-orientation" content="landscape">
+    <meta name="x5-orientation" content="landscape">
+    <meta name="full-screen" content="yes">
+    <meta name="x5-fullscreen" content="true">
     <title>hlviewer.js</title>
     <link rel="shortcut icon" type="image/x-icon" href="./favicon.ico?" />
     <link rel="stylesheet" href="dist/hlviewer.css">
@@ -122,6 +127,49 @@
         font-size: 16px;
         min-width: 200px; /* 设置最小宽度 */
         pointer-events: none; /* 防止字幕遮挡点击事件 */
+      }
+      
+      /* 添加全屏相关样式 */
+      @media screen and (orientation: portrait) {
+        .content {
+          width: 100vh;  /* 在竖屏时使用视口高度作为宽度 */
+          height: 100vw; /* 在竖屏时使用视口宽度作为高度 */
+          transform: rotate(90deg);
+          transform-origin: left top;
+          position: absolute;
+          top: 100%;
+          left: 0;
+        }
+      }
+      
+      /* 全屏时的样式 */
+      :fullscreen .content,
+      :-webkit-full-screen .content,
+      :-moz-full-screen .content {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        border-radius: 0;
+      }
+      
+      :fullscreen #hlv-target,
+      :-webkit-full-screen #hlv-target,
+      :-moz-full-screen #hlv-target {
+        border-radius: 0;
+      }
+      
+      /* 在全屏模式下隐藏 header */
+      :fullscreen header,
+      :-webkit-full-screen header,
+      :-moz-full-screen header {
+        display: none;
+      }
+      
+      /* 调整字幕在全屏时的位置 */
+      :fullscreen .subtitle-container,
+      :-webkit-full-screen .subtitle-container,
+      :-moz-full-screen .subtitle-container {
+        bottom: 120px;
       }
     </style>
   </head>
@@ -298,6 +346,32 @@
         return subtitles;
       }
 
+      // 在现有代码中添加屏幕方向锁定功能
+      async function lockScreenOrientation() {
+        try {
+          // 尝试锁定屏幕方向为横屏
+          await screen.orientation.lock('landscape');
+        } catch (error) {
+          console.log('无法锁定屏幕方向:', error);
+        }
+      }
+      
+      // 修改进入全屏的处理
+      function enterFullscreen(element) {
+        if (element.requestFullscreen) {
+          element.requestFullscreen();
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+          element.mozRequestFullScreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        }
+        
+        // 锁定屏幕方向
+        lockScreenOrientation();
+      }
+      
       document.addEventListener('DOMContentLoaded', () => {
         var viewer = HLViewer.init('#hlv-target', 'res')
         
@@ -411,6 +485,18 @@
           .catch(error => {
             console.error('Error fetching demo:', error);
           });
+
+        // 添加全屏切换按钮
+        const hlvTarget = document.getElementById('hlv-target');
+        hlvTarget.addEventListener('dblclick', () => {
+          if (!document.fullscreenElement) {
+            enterFullscreen(hlvTarget);
+          } else {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            }
+          }
+        });
       });
     </script>
   </body>
